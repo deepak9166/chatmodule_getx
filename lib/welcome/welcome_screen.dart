@@ -1,3 +1,4 @@
+import 'package:client_module_getx/Post/post_list.dart';
 import 'package:client_module_getx/controllers/authController.dart';
 import 'package:client_module_getx/lifeCycle.dart';
 import 'package:client_module_getx/models/Chat.dart';
@@ -64,7 +65,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               FittedBox(
                 child: TextButton(
                     onPressed: () => {
-                          Get.to(ChatsScreen())
+                          // Get.to(ChatsScreen())
+                          Get.to(PostList())
                           // Navigator.push(
                           //     context,
                           //     MaterialPageRoute(
