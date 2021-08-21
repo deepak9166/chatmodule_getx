@@ -9,7 +9,6 @@ class PostForm extends StatefulWidget {
 }
 
 class _PostFormState extends State<PostForm> {
-
   TextEditingController title = TextEditingController();
   TextEditingController description = TextEditingController();
 
@@ -22,26 +21,34 @@ class _PostFormState extends State<PostForm> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text("Title"),
-            SizedBox(height: 10,),
+            Text("user name"),
+            SizedBox(
+              height: 5,
+            ),
             TextFormField(
               controller: title,
             ),
-            SizedBox(height: 10,),
-            Text("Description"),
-            SizedBox(height: 10,),
+            SizedBox(
+              height: 10,
+            ),
+            Text("Enter post"),
+            SizedBox(
+              height: 5,
+            ),
             TextFormField(
               controller: description,
             ),
-            SizedBox(height: 20,),
+            SizedBox(
+              height: 20,
+            ),
             ElevatedButton(
-              onPressed: (){
+              onPressed: () {
                 FirebaseFirestore.instance.collection('post').add({
                   'title': title.text,
                   'description': description.text,
                 });
 
-                Get.to(PostList());
+                Get.back();
               },
               child: Text("Submit"),
             ),

@@ -35,6 +35,7 @@ class _BodyState extends State<Body> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
               margin: const EdgeInsets.symmetric(
@@ -167,8 +168,6 @@ class _BodyState extends State<Body> {
                                           name: "${uData.name.capitalize}",
                                           userImage: "${uData.image}",
                                           press: () {
-                                            // get or create chat id
-                                            // if usere click on first time chat id will create a new document on firebase or always update document
                                             var chatId = DataBase().makeChatId(
                                                 userController
                                                     .loginUserData.value.id,
