@@ -1,8 +1,10 @@
+import 'package:client_module_getx/controllers/commentController.dart';
 import 'package:client_module_getx/messages/components/chat_input_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:comment_tree/widgets/comment_tree_widget.dart';
 import 'package:comment_tree/widgets/tree_theme_data.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class CommentScreen extends StatefulWidget {
   CommentScreen({this.name, this.postcontent, this.id});
@@ -59,7 +61,7 @@ class _CommentScreenState extends State<CommentScreen> {
         .snapshots();
   }
 
-  Widget inputText(bool isReplay, String postId) {
+  Widget inputText(bool isReplay) {
     return Padding(
       padding: const EdgeInsets.all(15.0),
       child: Container(
@@ -95,16 +97,22 @@ class _CommentScreenState extends State<CommentScreen> {
                 padding: EdgeInsets.only(right: 6),
                 child: GestureDetector(
                     onTap: () {
+                      final commentController = Get.put(CommentController());
                       // sender name and sender id use accoridng current login user
                       FocusScope.of(context).unfocus();
 
                       if (isReplay) {
+                        print(
+                            "total comment send @@@@@@@@@@@@@@@@@@@@ ${commentController.totalRepay.value}");
+
+                        print(
+                            "selected comment id >>>>>>>>>>>>>>>>>>>>>> ${commentController.replaycommentId.value}");
                         // replay of comment
                         FirebaseFirestore.instance
                             .collection('post')
                             .doc(widget.id)
                             .collection("comments")
-                            .doc(postId)
+                            .doc(commentController.replaycommentId.value)
                             .collection("subcomment")
                             .add({
                           'message': messageEditingController.text,
@@ -118,9 +126,10 @@ class _CommentScreenState extends State<CommentScreen> {
                             .collection('post')
                             .doc(widget.id)
                             .collection("comments")
-                            .doc(postId)
+                            .doc(commentController.replaycommentId.value)
                             .update({
-                          'totalComment': "0",
+                          'totalComment':
+                              commentController.totalRepay.value.toString(),
                         });
                       } else {
                         FirebaseFirestore.instance
@@ -152,8 +161,113 @@ class _CommentScreenState extends State<CommentScreen> {
     );
   }
 
-  Widget chatCenterBody(
-      {Stream fun, isReplay, String name, String img, String id, String post}) {
+  Widget chatBody({
+    Stream fun,
+    isReplay,
+    String name,
+    String img,
+    String id,
+    String post,
+  }) {
+    return Column(
+      children: [
+        Expanded(
+          child: ChatBodyView(
+            fun: fun,
+            id: id,
+            img: img,
+            isReplay: isReplay,
+            name: name,
+            post: post,
+            onTabReplay: (totalCmd, cmdId) {
+              final commentController = Get.put(CommentController());
+
+              commentController.updateCommentId(cmdId).then((value) {
+                showReplyBottomSheet(context, cmdId, name, post);
+              });
+            },
+            onreplayLoad: (count) {
+              print("loaded listtt >>>>>>>> $count");
+              final commentController = Get.put(CommentController());
+
+              commentController.updateTotalReplay(count);
+            },
+          ),
+          //child: chatCenterBody(fun, isReplay, name,  img,  id, post),
+        ),
+        inputText(isReplay)
+      ],
+    );
+  }
+
+  showReplyBottomSheet(
+      BuildContext context, String selectedId, String name, String comment) {
+    showModalBottomSheet(
+        isScrollControlled: false,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20), topRight: Radius.circular(20))),
+        context: context,
+        builder: (BuildContext buildContext) {
+          return Container(
+            height: height * 0.85,
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: chatBody(
+              fun: getReplayPost(selectedId),
+              id: selectedId,
+              img:
+                  "https://icon-library.com/images/user-icon-jpg/user-icon-jpg-22.jpg",
+              isReplay: true,
+              name: name,
+              post: comment,
+            ),
+          );
+        });
+  }
+}
+
+class Comment {
+  static const TAG = 'Comment';
+
+  String avatar;
+  String userName;
+  String content;
+  String id;
+  String totalComment;
+
+  Comment({
+    @required this.avatar,
+    @required this.userName,
+    @required this.content,
+    @required this.id,
+    this.totalComment,
+  });
+}
+
+class ChatBodyView extends StatelessWidget {
+  const ChatBodyView(
+      {Key key,
+      @required this.fun,
+      @required this.id,
+      @required this.img,
+      @required this.isReplay,
+      @required this.name,
+      @required this.post,
+      this.onreplayLoad,
+      this.onTabReplay})
+      : super(key: key);
+
+  final Stream fun;
+  final bool isReplay;
+  final String name;
+  final String img;
+  final String id;
+  final String post;
+  final Function(String totalPost, String cmtId) onTabReplay;
+  final Function(String totalReplay) onreplayLoad;
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: fun,
       builder: (context, snapshot) {
@@ -169,6 +283,11 @@ class _CommentScreenState extends State<CommentScreen> {
                 userName: item['senderName'] ?? "null",
                 content: item['message']));
           }
+
+          if (isReplay) {
+            onreplayLoad((temp.length + 1).toString());
+          }
+
           return SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.only(left: 20, right: 20, top: 20),
@@ -253,17 +372,8 @@ class _CommentScreenState extends State<CommentScreen> {
                               isReplay
                                   ? SizedBox()
                                   : GestureDetector(
-                                      onTap: () {
-                                        print(
-                                            "total comment >>>>>>> ${temp.length}");
-                                        //"1" == "selectedPostId"
-                                        showReplyBottomSheet(
-                                            context,
-                                            data.id,
-                                            data.userName,
-                                            data.content,
-                                            temp.length - 1);
-                                      },
+                                      onTap: () => onTabReplay(
+                                          temp.length.toString(), data.id),
                                       child: Text(
                                           '${data.totalComment == "0" ? "" : data.totalComment} Reply')),
                             ],
@@ -328,73 +438,4 @@ class _CommentScreenState extends State<CommentScreen> {
       },
     );
   }
-
-  Widget chatBody({
-    Stream fun,
-    isReplay,
-    String name,
-    String img,
-    String id,
-    String post,
-  }) {
-    return Column(
-      children: [
-        Expanded(
-          child: chatCenterBody(
-            fun: fun,
-            id: id,
-            img: img,
-            isReplay: isReplay,
-            name: name,
-            post: post,
-          ),
-          //child: chatCenterBody(fun, isReplay, name,  img,  id, post),
-        ),
-        inputText(isReplay, id)
-      ],
-    );
-  }
-
-  showReplyBottomSheet(BuildContext context, String selectedId, String name,
-      String comment, int totalComment) {
-    showModalBottomSheet(
-        isScrollControlled: true,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20), topRight: Radius.circular(20))),
-        context: context,
-        builder: (BuildContext buildContext) {
-          return Container(
-            height: height * 0.85,
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: chatBody(
-              fun: getReplayPost(selectedId),
-              id: selectedId,
-              img:
-                  "https://icon-library.com/images/user-icon-jpg/user-icon-jpg-22.jpg",
-              isReplay: true,
-              name: name,
-              post: comment,
-            ),
-          );
-        });
-  }
-}
-
-class Comment {
-  static const TAG = 'Comment';
-
-  String avatar;
-  String userName;
-  String content;
-  String id;
-  String totalComment;
-
-  Comment({
-    @required this.avatar,
-    @required this.userName,
-    @required this.content,
-    @required this.id,
-    this.totalComment,
-  });
 }

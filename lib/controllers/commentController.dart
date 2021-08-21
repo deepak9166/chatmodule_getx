@@ -3,11 +3,21 @@ import 'package:get/get.dart';
 class CommentController extends GetxController {
   static CommentController instance = Get.find();
 
-  var replayTotalCount = 0.obs;
+  var totalRepay = "".obs;
+  var replaycommentId = "".obs;
 
-  updateTotalReplay(int count) {
-    replayTotalCount.value = count;
+  Future updateCommentId(String cmtId) async {
+    replaycommentId.value = cmtId;
     update();
+
+    return true;
+  }
+
+  Future updateTotalReplay(String count) async {
+    totalRepay.value = count;
+    update();
+
+    return true;
   }
 
   @override
